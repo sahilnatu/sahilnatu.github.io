@@ -76,16 +76,22 @@ svg { width: 100%; max-width: 460px; height: auto; display: block; margin: 0 aut
 <script src="https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js"></script>
 <script>
 const BROKER = "wss://re12d02f.ala.us-east-1.emqxsl.com:8084/mqtt";
-const FACE = { "Home": 12, "Travelling": 2, "Lost": 4, "Work": 6, "Away": 8, "Mortal Peril": 10 };
+// Eight positions, 45 degrees apart. Keep in step with CLOCK_FACE in brain\brain.py.
+const FACE = { "Home": 12, "Travelling": 1.5, "Work": 3, "Visiting": 4.5,
+               "Owl Post Only": 6, "Lost": 7.5, "Mortal Peril": 9, "Away": 10.5 };
 const PEOPLE = { sahil: { hand: "handS", name: "Sahil" }, gargi: { hand: "handG", name: "Gargi" } };
 
 // Dial
 const labels = document.getElementById("labels");
 for (const [name, hour] of Object.entries(FACE)) {
-  const a = hour * 30 * Math.PI / 180, r = 150;
+  const a = hour * 30 * Math.PI / 180, r = 146 - 14 * Math.abs(Math.sin(hour * 30 * Math.PI / 180));
+  // Long names go on two lines ("Owl Post" / "Only", "Mortal" / "Peril")
+  const words = name.split(" "), lines = name.length > 10 ? [words.slice(0, -1).join(" "), words.at(-1)] : [name];
+  const x = Math.sin(a) * r, y = -Math.cos(a) * r + 6 - (lines.length - 1) * 8;
   labels.insertAdjacentHTML("beforeend",
     `<line x1="${Math.sin(a)*168}" y1="${-Math.cos(a)*168}" x2="${Math.sin(a)*176}" y2="${-Math.cos(a)*176}" stroke="var(--brass)" stroke-width="3"/>` +
-    `<text x="${Math.sin(a)*r}" y="${-Math.cos(a)*r + 6}" text-anchor="middle" font-size="${name.length > 8 ? 17 : 20}" fill="var(--brass)" font-family="'IM Fell English SC', Georgia, serif">${name}</text>`);
+    `<text x="${x}" y="${y}" text-anchor="middle" font-size="${name.length > 8 ? 16 : 19}" fill="var(--brass)" font-family="'IM Fell English SC', Georgia, serif">` +
+    lines.map((l, i) => `<tspan x="${x}" dy="${i ? 16 : 0}">${l}</tspan>`).join("") + `</text>`);
 }
 
 // State per person. Hands start at Lost-free neutral (Home) and swing once data arrives.
